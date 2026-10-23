@@ -1,5 +1,64 @@
 # 变更记录
 
+## v2.0.3 · 2026-10-23 · 测量源必须在被测那一刻稳定
+
+用户原话：「内容流显示框在我回答问题的时候会变窄。」
+
+**改了什么**
+
+| 文件 | 改动 |
+|---|---|
+| `references/dsh-map.md` | 新增「五点五、限宽：正文列和输入卡共用一个变量」 |
+| `references/pitfalls.md` | 新增「靠测量输入卡来定正文列宽度，浮层一出就缩」 |
+| `SKILL.md` | 症状表加一行：回答问题的时候正文列变窄 |
+
+**为什么**
+
+限宽取 `min(输入卡宿主, 正文列容器)` 是对的——两者外壳 padding 不同（16 / 32），
+不取小就左右对不齐。但输入卡宿主这个测量源在浮层接管时失真：三种待回话卡片都渲染在
+`[data-composer-overlay]` 里，是输入卡的后代，卡片一浮出，`[data-composer-card]` 的
+`parentElement` 可用宽度掉几十像素，`min` 跟着掉，正文列整列缩窄；卡片消失又长回去。
+
+写成一句可复用的规则：**测量源必须在被测那一刻稳定。** 受影响就换源，
+不要为了省事把 `min` 去掉——那会破坏左右一条线。
+
+**怎么验证的**
+
+`scripts/selftest.js` 25 通过 / 0 失败。插件侧改动见 dsh-attention `CHANGELOG v0.10`；
+真机复测待带调试端口的冷启动（这次实例 9223 无监听，取不到页面帧数据）。
+
+---
+
+## v2.0.2 · 2026-10-23 · 澄清「等你回话」的三种形态
+
+**改了什么**
+
+- `references/attention.md` 状态机表把 `approval` 从「出现审批卡」改为「出现『等你回话』
+  的卡片」，并新增一节讲清它的定义、三种形态、两个实现陷阱、离开条件。
+- `references/dsh-map.md` 锚点表删掉从不命中的 `[data-slot*="approval"]`，补上
+  `[data-approval-key]` / `[data-question-key]` / `[data-plan-review-key]` /
+  `[data-question-reply]` / `[data-composer-overlay]`。
+- `references/pitfalls.md` 新增「猜出来的 slot 名从不命中，还不报错」，附两条查法。
+- `SKILL.md` 症状表补一行分诊。
+
+**为什么**
+
+用户提出「AI 问我问题的时候，让我做选择的时候，都是注意力焦点」。按这条回查 dsh 实现，
+发现 `approval` 判据用的是 `[data-slot*="approval"]`——slot 全集里没有这个名字，
+`app.asar` 里搜 `data-slot="approval` 也是 0 处，所以这态从来没进去过。
+
+真实锚点在组件源码里：提问与计划审核来自
+`dsh/node_modules/@deepseek-ai/dsh-client-ui-user-questions/lib/client.js`，
+工具许可来自 `ui-tool` 的 `ApprovalPanel`。三者都挂在
+`[data-composer-overlay]`（`height:0; position:absolute`）里，是输入卡的后代——
+所以任何「压暗输入区」的退让规则都会把焦点自己压暗。
+
+**怎么验证的**
+
+在 dsh 活体页面里逐个注入三种锚点，每次等两个 sync 周期后读状态与沿祖先链累乘的
+有效不透明度：三种均进入 `approval`，卡片 1、最后一条消息流 0.46、seat 1；
+移除探针后回到 `typing`。`node --check` 通过。
+
 ## v2.0.1 · 2026-10-23 · 改名 dsh-electron-ui-forge
 
 **改了什么**
