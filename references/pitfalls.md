@@ -117,8 +117,32 @@ node asar-read.js read "<内部路径>" /tmp/out.js
 ## 四、DOM 与样式
 
 ### 选择器今天有效明天失效
-
 用了 CSS Module 哈希类名。只用 `data-*`；实在没有就自己注入一个属性当锚点。
+
+### 猜出来的 slot 名从不命中，还不报错
+
+症状：写了个状态判定（比如「出现审批卡就切 approval」），界面上毫无反应，
+控制台干净，一行报错都没有。
+
+实例：`[data-slot*="approval"]` 在 dsh 里一次都不会命中。slot 全集有 60 多个
+（`conversation.input.permission`、`conversation.composer.bar` 等），没有 approval。
+真正渲染工具许可、AI 提问、计划审核的是组件自建的属性：
+`data-approval-key` / `data-question-key` / `data-plan-review-key`。
+
+两条查法，按顺序用：
+
+```js
+// 1. 先列 slot 全集，看你要的那个名字到底在不在
+[...new Set([...document.querySelectorAll('[data-slot]')].map(e => e.getAttribute('data-slot')))]
+```
+
+```bash
+# 2. 不在全集里，就去组件源码找真实锚点（asar 里的文件可直接读）
+grep -a -o 'data-[a-z-]*key' app.asar | sort -u
+```
+
+语义猜测（approval / confirm / dialog）在这类应用里基本靠不住：slot 体系和
+组件自有属性两套并存，同一个交互可能两套都不叫你以为的名字。
 
 ### 取到的元素永远「不可见」
 
@@ -171,6 +195,20 @@ CDP 截图有缩放系数。`shot` 的 clip 用 CSS 坐标，文件名宽度 ÷ 
 
 计时器猜不准人什么时候读完。状态撤销必须事件驱动：用户开始输入、滚出视野、
 新任务开始。见 `attention.md`。
+
+### 靠测量输入卡来定正文列宽度，浮层一出就缩
+
+现象：审批 / 提问 / 计划审核卡一出现，正文列缩一档，卡片消失又长回去。
+用户的原话是「回答问题的时候内容变窄」。
+
+原因：限宽取 `min(输入卡宿主, 正文列容器)` 是对的（两者外壳 padding 不同，
+不取小就左右对不齐），但**输入卡宿主这个测量源在浮层接管时会失真**。
+三种待回话卡片都渲染在 `[data-composer-overlay]` 里，是输入卡的后代；
+卡片浮出，`[data-composer-card]` 的 `parentElement` 可用宽度掉几十像素，
+`min` 立刻跟着掉，变量被夹小，正文列一列全缩。
+
+规则：**测量源必须在被测时刻稳定。** 浮层接管期间把受影响的那个源排除，
+只认没被接管的容器；不要为了省事直接把 `min` 去掉——那会破坏左右一条线。
 
 ## 六、已知不可行
 
