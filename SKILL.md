@@ -129,6 +129,7 @@ node scripts/cdp.js click 26 20                                        # 附带 
 | 某片区域大黑条 / 整页字隐形 | `dsh-map.md` 第四节 | 子应用自带明暗两套调色板，暗色标记还挂在 DOM 上 |
 | 按钮点不动 | `inject.md` | 弹层系统残留全屏透明捕获层，目标 `z-index` 压不过它 |
 | 两个元素左右不对齐 | `inject.md` | 两者父容器 padding 不同，可用宽不一样 |
+| 回答问题的时候正文列变窄 | `dsh-map.md` 五点五 | 浮层接管输入卡，限宽的测量源当场失真 |
 | 颜色怎么写都不变 | `inject.md` | inline `!important`，或主题脚本按帧回写 |
 | 宽度重启后变小、长不回来 | `pitfalls.md` 第五节 | 布局没排完就把量测值写进了持久状态 |
 | 改完插件没反应 | `pitfalls.md` 第三节 | 注册三处缺一，或 `client.js` 没走 `__ModuleLoader__.load` |
@@ -140,6 +141,7 @@ node scripts/cdp.js click 26 20                                        # 附带 
 | 界面太吵、不知道看哪 | `attention.md` | 所有元素音量相同，需要按状态分配权重 |
 | 生成时输入框不缩回 | `attention.md` | `typing` 判据只看焦点，发了消息焦点还在框里 |
 | 读完答案周围还在压暗 | `attention.md` | `data-state="running"` 挂到整轮结束，`done` 判断不到位 |
+| 提问 / 选择卡片出现，注意力没接管 | `attention.md` | 判据用了不存在的 slot 名；或输入区被压暗，卡片反而半透明 |
 
 ## 脚本
 
