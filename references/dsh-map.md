@@ -56,7 +56,11 @@ CSS Module 类名（`_9lTDKa_fade` 这类）不可依赖，只用 `data-*`：
 | `[data-composer-seat]` | 输入卡外层的壳（左右 16px padding，比正文列的 32px 小） |
 | `[data-attn-col]` | 正文列容器（注入层给的自定义锚点，非原生） |
 | `[data-conversation-scroll]` / `[data-conversation-content]` | 滚动容器 / 内容容器 |
-| `[data-slot*="approval"]` | 审批槽位 |
+| `[data-approval-key]` | 工具执行许可面板（内部滚动 `[data-approval-scroll]`） |
+| `[data-question-key]` | AI 提问、给选项让用户挑（内部滚动 `[data-question-scroll]`） |
+| `[data-plan-review-key]` | 计划提交上来等批准 |
+| `[data-question-reply]` + `[data-reply-outcome]` | 已答完的提问记录（在消息流里，不是焦点对象） |
+| `[data-composer-overlay]` | 上面三个「等你回话」面板的挂载点：`height:0; position:absolute`，在输入卡内部 |
 | `[data-slot="conversation.session.header.actions"]` | 页眉面包屑右侧的官方动作插槽 |
 
 DOM 里存在与正文同名、高度为 0 的测量/无障碍副本：取焦点时必须过滤
@@ -90,6 +94,31 @@ DOM 里存在与正文同名、高度为 0 的测量/无障碍副本：取焦点
 实测的"深底深字"陷阱：`-state-business-tertiary` 被指到 `--dsw-static-deepseek-800`
 （`#6B4D00`），「预览版」角标变成 `#2B2620` on `#6B4D00` = **1.92:1**。
 `tertiary` 的语义是最浅一级填充，遇到这种要取回同色相浅色（如 `#F3E6C4`）。
+
+## 五点五、限宽：正文列和输入卡共用一个变量
+
+dsh 自己不给正文列和输入卡同宽，上下边界经常差几个像素。要「一条线」，
+做法是让两者共用同一个自定义属性：
+
+```
+--pt-composer-w    写在 #root 的 inline style 上，默认 748px
+  ├─ [data-attn-col]{ max-width:var(--pt-composer-w) }        正文列
+  └─ [data-composer-card]{ max-width:var(--pt-composer-w) }   输入卡
+```
+
+为什么不写 `documentElement`：主题脚本会按帧把整套变量重写到
+`documentElement.style`，写在那里会被反复抹掉，宽度来回抖。
+`#root` 只被 React 管，主题够不着。
+
+**上限必须取两个容器的较小值**，因为外壳 padding 不同：
+窗口 1280 时，输入卡在 16px 外壳里可用 956，正文列在 32px 滚动区里只有 924。
+取 956 的话卡比列宽 32px，左右各错 16px——「一条线」当场破功。
+
+**但测量前要确认源是稳定的。** 三种待回话卡片（审批 / 提问 / 计划审核）
+渲染在 `[data-composer-overlay]` 里，是输入卡的后代；卡片一浮出，
+`[data-composer-card]` 的 `parentElement` 可用宽度就掉几十像素，
+`min()` 跟着掉，正文列整列缩窄，卡片消失又长回去。
+所以卡片在场时要把这个源排除。详细症状与规则见 `pitfalls.md` 第五节。
 
 ## 六、DS Bot 页（`ds-bot` 插件）
 
